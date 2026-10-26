@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Калькулятор НДС по странам мира</title>
+<style>
+  :root {
+    --bg:#f5f6fa; --card:#fff; --text:#1f2430; --muted:#6b7280;
+    --accent:#2563eb; --accent-hover:#1d4ed8; --border:#e5e7eb;
+    --warn:#b45309; --err:#b91c1c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,sans-serif;
+       background:var(--bg);color:var(--text);line-height:1.5}
+  .wrap{max-width:860px;margin:0 auto;padding:24px 16px 64px}
+  h1{font-size:1.6rem;margin:8px 0 4px}
+  h2{font-size:1.15rem;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0 0 24px;font-size:.95rem}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;
+        padding:20px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .card + .card{margin-top:20px}
+  form{display:grid;gap:14px}
+  .row{display:grid;gap:6px}
+  label{font-size:.9rem;color:var(--muted)}
+  input[type="text"]{width:100%;padding:10px 12px;font-size:1rem;
+      border:1px solid var(--border);border-radius:10px;background:#fff;color:var(--text)}
+  input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+  .grid2{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+  @media (max-width:560px){.grid2{grid-template-columns:1fr}}
+  button{padding:11px 18px;font-size:1rem;border:0;border-radius:10px;
+      background:var(--accent);color:#fff;cursor:pointer;font-weight:600}
+  button:hover{background:var(--accent-hover)}
+  .result{margin-top:22px}
+  .result-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .result-head .name{font-size:1.2rem;font-weight:700}
+  .result-head .en{color:var(--muted);font-size:.95rem}
+  .badge{display:inline-block;padding:2px 10px;border-radius:999px;
+      font-size:.85rem;font-weight:700;background:#eef2ff;color:var(--accent)}
+  .badge.none{background:#fef3c7;color:var(--warn)}
+  .badge.future{background:#e0e7ff;color:#4338ca}
+  .note{margin:8px 0 0;font-size:.9rem;color:var(--muted)}
+  .scope{margin:10px 0 0;font-size:.92rem;line-height:1.55;
+         padding:10px 12px;background:#f8fafc;border-radius:10px;
+         border:1px solid var(--border)}
+  .scope strong{color:var(--text)}
+  .export-note{margin:8px 0 0;font-size:.88rem;color:var(--muted);font-style:italic}
+  table.calc{width:100%;border-collapse:collapse;margin-top:14px}
+  table.calc th,table.calc td{text-align:left;padding:9px 8px;
+      border-bottom:1px solid var(--border);font-size:.95rem}
+  table.calc th{color:var(--muted);font-weight:600}
+  table.calc td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .alert{margin-top:18px;padding:12px 14px;border-radius:10px;font-size:.95rem}
+  .alert.err{background:#fee2e2;color:var(--err)}
+  .alert.warn{background:#fef3c7;color:var(--warn)}
+  .alert ul{margin:6px 0 0;padding-left:20px}
+  .alert a{color:inherit;font-weight:600}
+  .footer{margin-top:28px;font-size:.82rem;color:var(--muted)}
+  details{margin-top:26px}
+  summary{cursor:pointer;color:var(--accent);font-weight:600}
+  .all-list{margin-top:12px;max-height:360px;overflow:auto;
+      border:1px solid var(--border);border-radius:10px;padding:8px 12px;background:#fff}
+  .all-list div{display:flex;justify-content:space-between;padding:4px 0;
+      border-bottom:1px dashed var(--border);font-size:.92rem}
+  .all-list div:last-child{border-bottom:0}
+  .all-list .r{color:var(--muted);font-variant-numeric:tabular-nums}
+  .all-list a{color:inherit;text-decoration:none}
+  .charts{display:grid;gap:20px;margin-top:20px}
+  .chart-wrap{position:relative}
+  @media (min-width:900px){.charts{grid-template-columns:1fr 1fr}}
+  .chart-wrap.wide{grid-column:1 / -1}
+
+  /* Живой поиск */
+  .search-container { position: relative; }
+  .suggestions {
+    position: absolute; top: 100%; left: 0; right: 0;
+    background: #fff; border: 1px solid var(--border); border-radius: 10px;
+    margin-top: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    z-index: 100; max-height: 300px; overflow-y: auto; display: none;
+  }
+  .suggestions.active { display: block; }
+  .suggestion-item {
+    padding: 10px 14px; cursor: pointer; display: flex; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .suggestion-item:last-child { border-bottom: 0; }
+  .suggestion-item:hover, .suggestion-item.selected { background: #f0f4ff; }
+  .suggestion-item .s-ru { font-weight: 600; }
+  .suggestion-item .s-en { color: var(--muted); font-size: 0.85em; margin-left: 8px; }
+  .suggestion-item .s-rate { color: var(--accent); font-weight: 600; font-size: 0.9em; }
+
+  /* Карта */
+  #vatMap { border-radius: 10px; overflow: hidden; background: #f8fafc; height: 500px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Калькулятор НДС по странам мира</h1>
+  <p class="sub">Введите страну (можно синоним или сокращение) и, при желании, сумму для расчёта.</p>
+
+  <div class="card">
+    <form method="post" autocomplete="off">
+      <div class="grid2">
+        <div class="row search-container">
+          <label for="country">Страна</label>
+          <input id="country" name="country" type="text" autocomplete="off"
+                 placeholder="Например: Германия, USA, ОАЭ…" value="{{ query }}">
+          <div id="suggestions" class="suggestions"></div>
+        </div>
+        <div class="row">
+          <label for="amount">Сумма (необязательно)</label>
+          <input id="amount" name="amount" type="text" inputmode="decimal"
+                 placeholder="1000" value="{{ amount_raw }}"
+                 data-amount="{{ amount_raw if amount_raw else 1000 }}">
+        </div>
+      </div>
+      <div><button type="submit">Показать ставку и расчёт</button></div>
+    </form>
+
+    {% if error %}<div class="alert err">{{ error }}</div>{% endif %}
+
+    {% if ambiguous %}
+      <div class="alert warn">
+        Уточните страну:
+        <ul>
+          {% for ru in ambiguous %}
+            <li><a href="?country={{ ru|urlencode }}{% if amount_raw %}&amount={{ amount_raw|urlencode }}{% endif %}">{{ ru }}</a></li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    {% if result %}
+      <div class="result">
+        <div class="result-head">
+          <span class="name">{{ result.ru }}</span>
+          <span class="en">{{ result.en }}</span>
+          {% if result.rate_str %}
+            {% if result.future %}
+              <span class="badge future">НДС {{ result.rate_str }}</span>
+            {% else %}
+              <span class="badge">НДС {{ result.rate_str }}</span>
+            {% endif %}
+          {% else %}
+            <span class="badge none">стандартного НДС нет</span>
+          {% endif %}
+        </div>
+        {% if result.note %}<p class="note"><strong>Примечание:</strong> {{ result.note }}</p>{% endif %}
+
+        <div class="scope">
+          <strong>Области применения:</strong> {{ result.scope }}
+        </div>
+
+        {% if result.rate is not none and result.scope %}
+          <p class="export-note">Экспорт товаров, как правило, облагается по ставке 0%.</p>
+        {% endif %}
+
+        {% if result.amount %}
+          {% set a = result.amount %}
+          <table class="calc">
+            <tr>
+              <th>Сумма {{ a.amount_str }} <em>без</em> НДС</th>
+              <td class="num">НДС {{ a.vat_add }}</td>
+              <td class="num">итого с НДС <strong>{{ a.gross }}</strong></td>
+            </tr>
+            <tr>
+              <th>Сумма {{ a.amount_str }} <em>с</em> НДС</th>
+              <td class="num">НДС {{ a.vat_extract }}</td>
+              <td class="num">без НДС <strong>{{ a.net }}</strong></td>
+            </tr>
+          </table>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Карта мира: ставка НДС</h2>
+    <p class="sub" style="margin:0 0 14px;">Наведите на страну, чтобы увидеть точную ставку.</p>
+    <div id="vatMap"></div>
+  </div>
+
+  <div class="card">
+    <h2>Сравнение по странам</h2>
+    <p class="sub" style="margin:0 0 14px;">
+      Сумма без НДС: <strong id="cmp-amount">{{ amount_raw if amount_raw else 1000 }}</strong>.
+      Столбики отсортированы по итоговой цене.
+    </p>
+    <div class="chart-wrap wide"><canvas id="compareChart" height="140"></canvas></div>
+  </div>
+
+  <div class="charts">
+    <div class="card">
+      <h2>Распределение ставок</h2>
+      <p class="sub" style="margin:0 0 14px;">Сколько стран с каждой стандартной ставкой.</p>
+      <div class="chart-wrap"><canvas id="distChart" height="180"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Самые высокие и низкие</h2>
+      <p class="sub" style="margin:0 0 14px;">Топ-5 в каждую сторону.</p>
+      <div class="chart-wrap"><canvas id="topChart" height="180"></canvas></div>
+    </div>
+  </div>
+
+  <details>
+    <summary>Показать список всех стран ({{ all_countries|length }})</summary>
+    <div class="all-list">
+      {% for c in all_countries %}
+        <div>
+          <a href="?country={{ c.ru|urlencode }}{% if amount_raw %}&amount={{ amount_raw|urlencode }}{% endif %}">{{ c.ru }}</a>
+          <span class="r">{{ c.rate_str }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  </details>
+
+  <p class="footer">
+    ВАЖНО: ставки — стандартные (основные), данные могут устареть.
+    Перед реальными расчётами сверяйтесь с официальными источниками.
+  </p>
+</div>
+
+<!-- Подключение библиотек -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+<script>
+  const fmt = v => Number(v).toLocaleString('ru-RU', {maximumFractionDigits: 2});
+
+  async function drawCompare(amount) {
+    const res = await fetch(`/api/compare?amount=${encodeURIComponent(amount)}`);
+    const json = await res.json();
+    document.getElementById('cmp-amount').textContent = fmt(json.amount);
+
+    const labels = json.items.map(i => i.country);
+    const nets   = json.items.map(i => i.net);
+    const vats   = json.items.map(i => i.vat);
+
+    new Chart(document.getElementById('compareChart'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Без НДС', data: nets, backgroundColor: '#93c5fd' },
+          { label: 'НДС',     data: vats, backgroundColor: '#2563eb' },
+        ],
+      },
+      options: {
+        indexAxis: 'y', responsive: true,
+        scales: { x: { stacked: true, ticks: { callback: fmt } }, y: { stacked: true } },
+        plugins: {
+          legend: { position: 'bottom' },
+          tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmt(c.parsed.x)}` } },
+        },
+      },
+    });
+  }
+
+  async function drawDistribution() {
+    const res = await fetch('/api/distribution');
+    const json = await res.json();
+    new Chart(document.getElementById('distChart'), {
+      type: 'bar',
+      data: { labels: json.labels, datasets: [{ label: 'Стран', data: json.values, backgroundColor: '#2563eb' }] },
+      options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
+    });
+  }
+
+  async function drawTop() {
+    const res = await fetch('/api/compare?amount=1000&countries=' +
+      encodeURIComponent('Венгрия,Дания,Швеция,Хорватия,Финляндия,Швейцария,Андорра,ОАЭ,Сингапур,Тайвань'));
+    const json = await res.json();
+    const sorted = json.items.slice().sort((a, b) => a.rate - b.rate);
+
+    new Chart(document.getElementById('topChart'), {
+      type: 'bar',
+      data: {
+        labels: sorted.map(i => `${i.country} (${i.rate}%)`),
+        datasets: [{
+          label: 'Итоговая цена для 1000 без НДС',
+          data: sorted.map(i => i.gross),
+          backgroundColor: sorted.map(i => i.rate >= 25 ? '#dc2626' : i.rate >= 20 ? '#f59e0b' : '#10b981'),
+        }],
+      },
+      options: {
+        indexAxis: 'y',
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => fmt(c.parsed.x) } } },
+        scales: { x: { ticks: { callback: fmt } } },
+      },
+    });
+  }
+
+  async function drawMap() {
+    try {
+      const res = await fetch('/api/map_data');
+      const data = await res.json();
+
+      const trace = {
+        type: 'choropleth',
+        locations: data.map(d => d.iso),
+        z: data.map(d => d.rate),
+        text: data.map(d => d.country),
+        colorscale: [[0, '#e0f2fe'], [0.5, '#60a5fa'], [1, '#1e3a8a']],
+        colorbar: { title: 'Ставка, %', thickness: 15, len: 0.7 },
+        hovertemplate: '<b>%{text}</b><br>Ставка НДС: %{z}%<extra></extra>',
+        marker: { line: { color: '#fff', width: 0.5 } }
+      };
+
+      const layout = {
+        geo: { projection: { type: 'natural earth' }, showframe: false, showcoastlines: true,
+               landcolor: '#f1f5f9', showcountries: true, countrycolor: '#cbd5e1' },
+        margin: { l: 0, r: 0, t: 0, b: 0 },
+        paper_bgcolor: 'transparent', plot_bgcolor: 'transparent'
+      };
+
+      Plotly.newPlot('vatMap', [trace], layout, { responsive: true, displayModeBar: false });
+    } catch (err) { console.error('Ошибка карты:', err); }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // Графики
+    const amountInput = document.getElementById('amount');
+    const amt = amountInput ? amountInput.dataset.amount : 1000;
+    drawCompare(amt);
+    drawDistribution();
+    drawTop();
+    drawMap();
+
+    // Живой поиск
+    const input = document.getElementById('country');
+    const suggestions = document.getElementById('suggestions');
+    let timeout = null;
+
+    input.addEventListener('input', () => {
+      clearTimeout(timeout);
+      const val = input.value.trim();
+      if (val.length < 2) { suggestions.classList.remove('active'); return; }
+
+      timeout = setTimeout(async () => {
+        try {
+          const res = await fetch(`/api/search?q=${encodeURIComponent(val)}`);
+          const data = await res.json();
+          if (data.length === 0) { suggestions.classList.remove('active'); return; }
+          suggestions.innerHTML = data.map(item => `
+            <div class="suggestion-item" onclick="selectCountry('${item.ru}')">
+              <div><span class="s-ru">${item.ru}</span><span class="s-en">${item.en}</span></div>
+              <span class="s-rate">${item.rate_str}</span>
+            </div>
+          `).join('');
+          suggestions.classList.add('active');
+        } catch (err) { console.error(err); }
+      }, 250);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!input.contains(e.target) && !suggestions.contains(e.target)) {
+        suggestions.classList.remove('active');
+      }
+    });
+
+    window.selectCountry = (name) => {
+      input.value = name;
+      suggestions.classList.remove('active');
+      input.form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+    };
+  });
+</script>
+</body>
+</html>
